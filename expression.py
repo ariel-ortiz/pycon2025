@@ -1,9 +1,10 @@
 # start = expression , ? end of input ? ;
 # expression = additive ;
 # additive = multiplicative , { ("+" | "-") , multiplicative } ;
-# multiplicative = power , { ("*" | "/" | "%" ) , power } ;   (* UPDATED *)
-# power = primary , [ "^" , power ] ;                         (* NEW *)
-# primary = ? integer ? | ? variable ? | "(" , expression , ")"
+# multiplicative = negation , { ("*" | "/" | "%" ) , negation } ; (* UPDATED *)
+# negation = "-" negation | power ;                         (* NEW *)
+# power = primary , [ "^" , power ] ;
+# primary = ? integer ? | ? variable ? | "(" , expression , ")" ;
 
 import re
 
@@ -64,16 +65,22 @@ class ExpressionParser:
         return result
 
     def multiplicative(self):
-        result = self.power()
+        result = self.negation()
         while self._current in ['*', '/', '%']:
             match self.expect(['*', '/', '%']):
                 case '*':
-                    result *= self.power()
+                    result *= self.negation()
                 case '/':
-                    result //= self.power()
+                    result //= self.negation()
                 case '%':
-                    result %= self.power()
+                    result %= self.negation()
         return result
+
+    def negation(self):
+        if self._current == '-':
+            self.advance()
+            return -self.negation()
+        return self.power()
 
     def power(self):
         result = self.primary()
@@ -108,8 +115,9 @@ class ExpressionParser:
 
 if __name__ == '__main__':
     # expression = '11 * 2 / (15 - 10) + 20 % 3'
-    expression = '11 * t + 2 ^ t ^ 2 - t + 1'
-    environment = {'t': 3}
+    # expression = '11 * t + 2 ^ t ^ 2 - t + 1'
+    expression = '--(-p + -p) + - 2 ^ 4'
+    environment = {'p': 2}
     evaluator = ExpressionParser(expression, environment)
     try:
         result = evaluator.start()
